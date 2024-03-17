@@ -13,11 +13,19 @@ class TestPage extends StatefulWidget {
 
 class _TestPageState extends State<TestPage> {
   @override
+  void initState() {
+    super.initState();
+    //запускаем оба таймера
+    context.read<MainCubit>().startTimers();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
         title: const Text('Тест'),
+        leading: const _TaskTimer(),
       ),
       body: const Column(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -86,8 +94,11 @@ class _TestPageMainWidgetState extends State<_TestPageMainWidget> {
       builder: (context, state) {
         return Text(
           context.read<MainCubit>().getMainWidgetText(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: taskTextSize,
+            color: state.testPageStatus == TestPageStatus.isLoading
+                ? Colors.green
+                : Colors.black,
           ),
           textAlign: TextAlign.center,
         );
@@ -127,7 +138,10 @@ class _NumberButtonState extends State<_NumberButton> {
             ),
           ),
           onTap: () {
-            context.read<MainCubit>().addDigitToNumber(widget.number);
+            if (context.read<MainCubit>().state.testPageStatus !=
+                TestPageStatus.isLoading) {
+              context.read<MainCubit>().addDigitToNumber(widget.number);
+            }
           },
         ),
       ),
@@ -179,15 +193,34 @@ class _FuncButtonState extends State<_FuncButton> {
             ),
           ),
           onTap: () {
-            context.read<MainCubit>().skipOrDelete(widget.func);
+            if (context.read<MainCubit>().state.testPageStatus !=
+                TestPageStatus.isLoading) {
+              context.read<MainCubit>().skipOrDelete(widget.func);
+            }
           },
           onLongPress: () {
-            if (widget.func == 'delete') {
-              context.read<MainCubit>().clearInput();
+            if (context.read<MainCubit>().state.testPageStatus !=
+                TestPageStatus.isLoading) {
+              if (widget.func == 'delete') {
+                context.read<MainCubit>().clearInput();
+              }
             }
           },
         ),
       ),
+    );
+  }
+}
+
+class _TaskTimer extends StatelessWidget {
+  const _TaskTimer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<MainCubit, MainCubitState>(
+      builder: (context, state) {
+        return Text(state.secondsForTask!.toString());
+      },
     );
   }
 }

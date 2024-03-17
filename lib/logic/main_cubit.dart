@@ -16,6 +16,17 @@ import '../data/storage_provider.dart';
 enum TestPageStatus {
   isLoading,
   loaded,
+  sessionEnded,
+}
+
+enum TimerStatus {
+  isRunning,
+  isToReset,
+}
+
+enum SessionStatus {
+  isRunning,
+  ends,
 }
 
 enum AppStatus {
@@ -23,11 +34,17 @@ enum AppStatus {
   loaded,
 }
 
+const int secondsForTask = 6;
+const int secondsForSession = 300;
+
 class MainCubit extends Cubit<MainCubitState> {
   MainCubit()
       : super(MainCubitState(
           appStatus: AppStatus.isLoading,
-          testPageStatus: TestPageStatus.isLoading,
+          testPageStatus: TestPageStatus.loaded,
+          secondsForTask: secondsForTask,
+          secondsForSession: secondsForSession,
+          timerStatus: TimerStatus.isRunning,
         ));
 
   //публичные методы
@@ -45,6 +62,12 @@ class MainCubit extends Cubit<MainCubitState> {
       _generateOperationAndDifficulty();
     }
     //больше не работаем с файлом, только со стейтом, потому что стейт уже создан
+  }
+
+  //запускаем таймеры при инициализации экрана теста
+  void startTimers() {
+    _startTaskTimer();
+    _startSessionTimer();
   }
 
   //для кнопки "Сохранить" в настройках
@@ -147,6 +170,8 @@ class MainCubit extends Cubit<MainCubitState> {
   //вызывается, когда мы написали правильный ответ
   //вызывается, когда мы пропускам ответ
   void _generateOperationAndDifficulty() {
+    //перед генерацией данных сбрасываем счетчик примера
+    _resetTaskTimer();
     //получаем переменную для работы внутри кубита
     List<List<int>> difficultyLevels = [];
     for (int i = 0; i < state.difficultyLevelsForSettings!.length; i++) {
@@ -183,11 +208,72 @@ class MainCubit extends Cubit<MainCubitState> {
 
   //проверка ответа
   //вызывается при проверке ответа
-  void _checkAnswer() {
+  void _checkAnswer() async {
     if (state.currentNumber == state.result) {
+      //если правильный ответ - меняем цвет текста на время
+      await _changeTextColorOnCorrectAnswer();
       _generateOperationAndDifficulty();
     }
   }
+
+  //меняем статус экрана с тестом, чтобы по значению статуса
+  //управлять кнопками и цветом текста примера
+  Future<void> _changeTextColorOnCorrectAnswer() async {
+    emit(state.copyWith(testPageStatus: TestPageStatus.isLoading));
+    await Future.delayed(const Duration(milliseconds: 800));
+    emit(state.copyWith(testPageStatus: TestPageStatus.loaded));
+  }
+
+  //ТАЙМЕР
+  //запускаем таймер примера
+  void _startTaskTimer() async {
+    while (state.secondsForTask! >= 0) {
+      //если время примера кончилось, мы запускаем реакцию на это
+      if(state.secondsForTask! == 0){
+        _outOfTaskTime();
+        return;
+      }
+      //если еще есть, то ждем 1 секунду
+      await Future.delayed(const Duration(seconds: 1));
+      //и новое время записываем в стейт
+      emit(state.copyWith(secondsForTask: state.secondsForTask! - 1));
+    }
+  }
+
+  //сброс таймера примера
+  //просто задаем начальное значение
+  void _resetTaskTimer() {
+    emit(state.copyWith(secondsForTask: secondsForTask));
+  }
+
+  //реакция на окончание таймера примера
+  void _outOfTaskTime() {
+    //генерируем числа
+    //там происходит сброс времени до начального значения
+    _generateOperationAndDifficulty();
+    //запускаем таймер заново, потому что у нас кончился цикл while
+    _startTaskTimer();
+  }
+
+  //запускаем таймер сессии
+  //логика аналогична таймеру примера
+  void _startSessionTimer() async {
+    while (state.secondsForSession! >= 0) {
+      if(state.secondsForSession! == 0){
+        _outOfSessionTime();
+        return;
+      }
+      await Future.delayed(const Duration(seconds: 1));
+      emit(state.copyWith(secondsForSession: state.secondsForSession! - 1));
+    }
+  }
+
+  //реакция на окончание таймера сессии
+  //здесь надо будет поставить статус, который замораживает приложение
+  //чтобы пользователь не мог ничего ввести и т.д., только выйти из сессии
+  //либо запустить ее заново
+  //либо перейти в результаты
+  void _outOfSessionTime() {}
 }
 
 class MainCubitState {
@@ -200,6 +286,10 @@ class MainCubitState {
   int? operation;
   List<List<int>>? difficultyLevels;
   List<List<int>>? difficultyLevelsForSettings;
+  int? secondsForTask;
+  int? secondsForSession;
+  TimerStatus? timerStatus;
+  SessionStatus? sessionStatus;
 
   MainCubitState({
     this.appStatus,
@@ -211,6 +301,10 @@ class MainCubitState {
     this.operation,
     this.difficultyLevels,
     this.difficultyLevelsForSettings,
+    this.secondsForTask,
+    this.secondsForSession,
+    this.timerStatus,
+    this.sessionStatus,
   });
 
   MainCubitState copyWith({
@@ -223,6 +317,10 @@ class MainCubitState {
     int? operation,
     List<List<int>>? difficultyLevels,
     List<List<int>>? difficultyLevelsForSettings,
+    int? secondsForTask,
+    int? secondsForSession,
+    TimerStatus? timerStatus,
+    SessionStatus? sessionStatus,
   }) {
     return MainCubitState(
       appStatus: appStatus ?? this.appStatus,
@@ -235,6 +333,10 @@ class MainCubitState {
       difficultyLevels: difficultyLevels ?? this.difficultyLevels,
       difficultyLevelsForSettings:
           difficultyLevelsForSettings ?? this.difficultyLevelsForSettings,
+      secondsForTask: secondsForTask ?? this.secondsForTask,
+      secondsForSession: secondsForSession ?? this.secondsForSession,
+      timerStatus: timerStatus ?? this.timerStatus,
+      sessionStatus: sessionStatus ?? this.sessionStatus,
     );
   }
 }
@@ -330,7 +432,8 @@ class _Generator {
     var rng = Random();
     int firstNumber;
     int secondNumber;
-    firstNumber = rng.nextInt(_Generator._firstNumMax) + _Generator._firstNumMin;
+    firstNumber =
+        rng.nextInt(_Generator._firstNumMax) + _Generator._firstNumMin;
     secondNumber =
         rng.nextInt(_Generator._secondNumMax) + _Generator._secondNumMin;
     if (firstNumber == 0 ||

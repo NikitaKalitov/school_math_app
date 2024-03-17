@@ -17,6 +17,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    //запускаем кубит при запуске приложения
     context.read<MainCubit>().initCubit();
   }
 
