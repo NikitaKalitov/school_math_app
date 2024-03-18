@@ -12,12 +12,10 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final TextEditingController controller = TextEditingController();
-
   @override
   void initState() {
     super.initState();
-    //запускаем кубит при запуске приложения
+    //инициализируем кубит при запуске приложения
     context.read<MainCubit>().initCubit();
   }
 
@@ -31,5 +29,3 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
-
-

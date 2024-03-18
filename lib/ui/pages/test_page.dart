@@ -25,12 +25,13 @@ class _TestPageState extends State<TestPage> {
       appBar: AppBar(
         centerTitle: true,
         title: const Text('Тест'),
-        leading: const _TaskTimer(),
+        actions: const [_SessionTimer()],
       ),
       body: const Column(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           Expanded(flex: 3, child: Center(child: _TestPageMainWidget())),
+          _TaskTimer(),
           _ExpandedRowWithFlex(children: [
             _NumberButton(number: 7),
             _NumberButton(number: 8),
@@ -212,14 +213,68 @@ class _FuncButtonState extends State<_FuncButton> {
   }
 }
 
-class _TaskTimer extends StatelessWidget {
-  const _TaskTimer({super.key});
+class _SessionTimer extends StatelessWidget {
+  const _SessionTimer({super.key});
+
+  String _secondsToTime(int initialSeconds) {
+    int minutes = (initialSeconds / 60).truncate();
+    int seconds = initialSeconds - minutes * 60;
+    String zero = seconds > 9 ? '' : '0';
+    return '$minutes:$zero$seconds';
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<MainCubit, MainCubitState>(
       builder: (context, state) {
-        return Text(state.secondsForTask!.toString());
+        return Padding(
+          padding: const EdgeInsets.only(right: 15.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Icon(Icons.timer_outlined),
+              Text(
+                _secondsToTime(state.currentSecondsForSession!),
+                style: const TextStyle(fontSize: 20),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TaskTimer extends StatelessWidget {
+  const _TaskTimer({super.key});
+
+  double _value(int currentSeconds, int initialSeconds) {
+    return currentSeconds / initialSeconds;
+  }
+
+  Color _color(int currentSeconds, int initialSeconds) {
+    Color color = Colors.green;
+    if (currentSeconds / initialSeconds > 0.6) {
+      color = Colors.green;
+    } else if (currentSeconds / initialSeconds > 0.25) {
+      color = Colors.orange;
+    } else {
+      color = Colors.red;
+    }
+    return color;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<MainCubit, MainCubitState>(
+      builder: (context, state) {
+        return LinearProgressIndicator(
+          value: _value(
+              state.currentSecondsForTask!, state.initialSecondsForTask!),
+          color: _color(
+              state.currentSecondsForTask!, state.initialSecondsForTask!),
+          minHeight: 5,
+        );
       },
     );
   }

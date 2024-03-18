@@ -34,7 +34,7 @@ enum AppStatus {
   loaded,
 }
 
-const int secondsForTask = 6;
+const int secondsForTask = 30;
 const int secondsForSession = 300;
 
 class MainCubit extends Cubit<MainCubitState> {
@@ -42,8 +42,9 @@ class MainCubit extends Cubit<MainCubitState> {
       : super(MainCubitState(
           appStatus: AppStatus.isLoading,
           testPageStatus: TestPageStatus.loaded,
-          secondsForTask: secondsForTask,
-          secondsForSession: secondsForSession,
+          initialSecondsForTask: secondsForTask,
+          currentSecondsForTask: secondsForTask,
+          currentSecondsForSession: secondsForSession,
           timerStatus: TimerStatus.isRunning,
         ));
 
@@ -227,23 +228,24 @@ class MainCubit extends Cubit<MainCubitState> {
   //ТАЙМЕР
   //запускаем таймер примера
   void _startTaskTimer() async {
-    while (state.secondsForTask! >= 0) {
+    while (state.currentSecondsForTask! >= 0) {
       //если время примера кончилось, мы запускаем реакцию на это
-      if(state.secondsForTask! == 0){
+      if (state.currentSecondsForTask! == 0) {
         _outOfTaskTime();
         return;
       }
       //если еще есть, то ждем 1 секунду
       await Future.delayed(const Duration(seconds: 1));
       //и новое время записываем в стейт
-      emit(state.copyWith(secondsForTask: state.secondsForTask! - 1));
+      emit(state.copyWith(
+          currentSecondsForTask: state.currentSecondsForTask! - 1));
     }
   }
 
   //сброс таймера примера
   //просто задаем начальное значение
   void _resetTaskTimer() {
-    emit(state.copyWith(secondsForTask: secondsForTask));
+    emit(state.copyWith(currentSecondsForTask: secondsForTask));
   }
 
   //реакция на окончание таймера примера
@@ -258,13 +260,14 @@ class MainCubit extends Cubit<MainCubitState> {
   //запускаем таймер сессии
   //логика аналогична таймеру примера
   void _startSessionTimer() async {
-    while (state.secondsForSession! >= 0) {
-      if(state.secondsForSession! == 0){
+    while (state.currentSecondsForSession! >= 0) {
+      if (state.currentSecondsForSession! == 0) {
         _outOfSessionTime();
         return;
       }
       await Future.delayed(const Duration(seconds: 1));
-      emit(state.copyWith(secondsForSession: state.secondsForSession! - 1));
+      emit(state.copyWith(
+          currentSecondsForSession: state.currentSecondsForSession! - 1));
     }
   }
 
@@ -286,8 +289,9 @@ class MainCubitState {
   int? operation;
   List<List<int>>? difficultyLevels;
   List<List<int>>? difficultyLevelsForSettings;
-  int? secondsForTask;
-  int? secondsForSession;
+  int? initialSecondsForTask;
+  int? currentSecondsForTask;
+  int? currentSecondsForSession;
   TimerStatus? timerStatus;
   SessionStatus? sessionStatus;
 
@@ -301,8 +305,9 @@ class MainCubitState {
     this.operation,
     this.difficultyLevels,
     this.difficultyLevelsForSettings,
-    this.secondsForTask,
-    this.secondsForSession,
+    this.initialSecondsForTask,
+    this.currentSecondsForTask,
+    this.currentSecondsForSession,
     this.timerStatus,
     this.sessionStatus,
   });
@@ -317,8 +322,9 @@ class MainCubitState {
     int? operation,
     List<List<int>>? difficultyLevels,
     List<List<int>>? difficultyLevelsForSettings,
-    int? secondsForTask,
-    int? secondsForSession,
+    int? initialSecondsForTask,
+    int? currentSecondsForTask,
+    int? currentSecondsForSession,
     TimerStatus? timerStatus,
     SessionStatus? sessionStatus,
   }) {
@@ -333,8 +339,12 @@ class MainCubitState {
       difficultyLevels: difficultyLevels ?? this.difficultyLevels,
       difficultyLevelsForSettings:
           difficultyLevelsForSettings ?? this.difficultyLevelsForSettings,
-      secondsForTask: secondsForTask ?? this.secondsForTask,
-      secondsForSession: secondsForSession ?? this.secondsForSession,
+      initialSecondsForTask:
+          initialSecondsForTask ?? this.initialSecondsForTask,
+      currentSecondsForTask:
+          currentSecondsForTask ?? this.currentSecondsForTask,
+      currentSecondsForSession:
+          currentSecondsForSession ?? this.currentSecondsForSession,
       timerStatus: timerStatus ?? this.timerStatus,
       sessionStatus: sessionStatus ?? this.sessionStatus,
     );
